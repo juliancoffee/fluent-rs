@@ -225,7 +225,7 @@ impl<'m> FluentMessage<'m> {
     /// }
     /// # assert_eq!(err.len(), 0);
     /// ```
-    pub fn attributes(&self) -> impl Iterator<Item = FluentAttribute<'m>> {
+    pub fn attributes(&self) -> impl ExactSizeIterator<Item = FluentAttribute<'m>> {
         self.node.attributes.iter().map(Into::into)
     }
 
