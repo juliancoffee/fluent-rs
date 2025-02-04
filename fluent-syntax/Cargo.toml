@@ -1,44 +1,45 @@
 [package]
 name = "fluent-syntax"
 description = """
-Parser/Serializer tools for Fluent Syntax. 
+A low-level parser, AST, and serializer API for the syntax used by Project Fluent,
+a localization system designed to unleash the entire expressive power of natural language translations.
 """
-version = "0.11.0"
-edition = "2021"
-authors = [
-    "Zibi Braniecki <gandalf@mozilla.com>",
-    "Staś Małolepszy <stas@mozilla.com>"
-]
-homepage = "http://www.projectfluent.org"
-license = "Apache-2.0/MIT"
-repository = "https://github.com/projectfluent/fluent-rs"
+version = "0.11.1"
+edition.workspace = true
+rust-version = "1.64.0"
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+authors.workspace = true
+categories.workspace = true
+keywords.workspace = true
 readme = "README.md"
-keywords = ["localization", "l10n", "i18n", "intl", "internationalization"]
-categories = ["localization", "internationalization"]
 include = [
-	"src/**/*",
-	"benches/*.rs",
-	"Cargo.toml",
-	"README.md",
-	"LICENSE-APACHE",
-	"LICENSE-MIT"
+  "src/**/*",
+  "benches/*.rs",
+  "Cargo.toml",
+  "README.md",
+  "LICENSE-APACHE",
+  "LICENSE-MIT"
 ]
 
 [dependencies]
-serde = { version = "1.0", features = ["derive"], optional = true }
-serde_json = { version = "1.0", optional = true }
-thiserror = "1.0"
+memchr = "2.0"
+serde = { workspace = true, optional = true, features = ["derive"] }
+serde_json = { workspace = true, optional = true }
+thiserror.workspace = true
 
 [dev-dependencies]
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+criterion.workspace = true
+iai.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
 glob = "0.3"
-criterion = "0.3"
-iai = "0.1"
 
 [features]
 default = []
-json = ["serde", "serde_json"]
+serde = ["dep:serde"]
+json = ["serde", "dep:serde_json"]
 all-benchmarks = []
 
 [[bench]]

@@ -78,7 +78,7 @@
 //!
 //! ## Errors
 //!
-//! Fluent AST preserves blocks containing invaid syntax as [`Entry::Junk`].
+//! Fluent AST preserves blocks containing invalid syntax as [`Entry::Junk`].
 //!
 //! ## White space
 //!
@@ -393,7 +393,7 @@ pub struct Pattern<S> {
     pub elements: Vec<PatternElement<S>>,
 }
 
-/// PatternElement is an element of a [`Pattern`].
+/// `PatternElement` is an element of a [`Pattern`].
 ///
 /// Each [`PatternElement`] node represents
 /// either a simple textual value, or a combination of text literals
@@ -584,7 +584,7 @@ pub struct Attribute<S> {
 ///     }
 /// );
 /// ```
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Identifier<S> {
     pub name: S,
@@ -752,7 +752,7 @@ pub struct Variant<S> {
 ///     }
 /// );
 /// ```
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(tag = "type"))]
 pub enum VariantKey<S> {
@@ -798,7 +798,7 @@ pub enum VariantKey<S> {
 ///     }
 /// );
 /// ```
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(from = "helper::CommentDef<S>"))]
 pub struct Comment<S> {
@@ -1438,9 +1438,22 @@ pub enum InlineExpression<S> {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(untagged))]
 pub enum Expression<S> {
+    /// A select expression such as:
+    /// ```ftl
+    /// key = { $var ->
+    ///     [key1] Value 1
+    ///    *[other] Value 2
+    /// }
+    /// ```
     Select {
         selector: InlineExpression<S>,
         variants: Vec<Variant<S>>,
     },
+
+    /// An inline expression such as `${ username }`:
+    ///
+    /// ```ftl
+    /// hello-user = Hello ${ username }
+    /// ```
     Inline(InlineExpression<S>),
 }

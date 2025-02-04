@@ -1,21 +1,19 @@
 [package]
 name = "fluent-cli"
 description = """
-A collection of command line interface programs
-for Fluent Localization System.
+A collection of developer-oriented command line interface tools for Project Fluent,
+a localization system designed to unleash the entire expressive power of natural language translations.
 """
 version = "0.0.1"
-edition = "2021"
-authors = [
-    "Zibi Braniecki <gandalf@mozilla.com>",
-    "Staś Małolepszy <stas@mozilla.com>"
-]
-homepage = "http://www.projectfluent.org"
-license = "Apache-2.0/MIT"
-repository = "https://github.com/projectfluent/fluent-rs"
+edition.workspace = true
+rust-version.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+authors.workspace = true
+categories.workspace = true
+keywords.workspace = true
 readme = "README.md"
-keywords = ["localization", "l10n", "i18n", "intl", "internationalization"]
-categories = ["localization", "internationalization"]
 
 [[bin]]
 name = "resolver-cli"
@@ -26,9 +24,9 @@ name = "parser-cli"
 path = "src/main.rs"
 
 [dependencies]
-annotate-snippets = {version = "0.6", features = ["color"]}
+fluent-bundle.workspace = true
+fluent-syntax.workspace = true
+serde = { workspace = true, features = ["derive"]}
+serde_json.workspace = true
+annotate-snippets = { version = "0.6", features = ["color"] }
 clap = "2.33"
-fluent-syntax = "0.11"
-fluent-bundle = "0.15"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"

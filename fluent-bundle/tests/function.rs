@@ -24,7 +24,7 @@ liked-count2 = { NUMBER($num) ->
     let mut bundle = FluentBundle::default();
 
     bundle
-        .add_function("NUMBER", |positional, named| match positional.get(0) {
+        .add_function("NUMBER", |positional, named| match positional.first() {
             Some(FluentValue::Number(n)) => {
                 let mut num = n.clone();
                 num.options.merge(named);
@@ -32,7 +32,7 @@ liked-count2 = { NUMBER($num) ->
                 FluentValue::Number(num)
             }
             Some(FluentValue::String(s)) => {
-                let num: f64 = if let Ok(n) = s.to_owned().parse() {
+                let num: f64 = if let Ok(n) = s.clone().parse() {
                     n
                 } else {
                     return FluentValue::Error;
@@ -63,7 +63,7 @@ liked-count2 = { NUMBER($num) ->
 
     let mut errors = vec![];
     let pattern = msg.value().expect("Message has no value.");
-    let value = bundle.format_pattern(&pattern, Some(&args), &mut errors);
+    let value = bundle.format_pattern(pattern, Some(&args), &mut errors);
     assert_eq!("\u{2068}1\u{2069} people liked your message", &value);
 
     // 3. Example with passing number, but without NUMBER call
@@ -75,7 +75,7 @@ liked-count2 = { NUMBER($num) ->
         .expect("Message doesn't exist.");
     let mut errors = vec![];
     let pattern = msg.value().expect("Message has no value.");
-    let value = bundle.format_pattern(&pattern, Some(&args), &mut errors);
+    let value = bundle.format_pattern(pattern, Some(&args), &mut errors);
     assert_eq!("One person liked your message", &value);
 
     // 4. Example with NUMBER call
@@ -87,7 +87,7 @@ liked-count2 = { NUMBER($num) ->
         .expect("Message doesn't exist.");
     let mut errors = vec![];
     let pattern = msg.value().expect("Message has no value.");
-    let value = bundle.format_pattern(&pattern, Some(&args), &mut errors);
+    let value = bundle.format_pattern(pattern, Some(&args), &mut errors);
     assert_eq!("One person liked your message", &value);
 
     // 5. Example with NUMBER call from number
@@ -99,6 +99,6 @@ liked-count2 = { NUMBER($num) ->
         .expect("Message doesn't exist.");
     let mut errors = vec![];
     let pattern = msg.value().expect("Message has no value.");
-    let value = bundle.format_pattern(&pattern, Some(&args), &mut errors);
+    let value = bundle.format_pattern(pattern, Some(&args), &mut errors);
     assert_eq!("One person liked your message", &value);
 }

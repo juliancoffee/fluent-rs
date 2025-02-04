@@ -28,7 +28,7 @@ pub struct L10nMessage<'l> {
     pub attributes: Vec<L10nAttribute<'l>>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ResourceType {
     /// This is a required resource.
     ///
@@ -117,6 +117,12 @@ impl Eq for ResourceId {}
 impl PartialEq for ResourceId {
     fn eq(&self, other: &Self) -> bool {
         self.value.eq(&other.value)
+    }
+}
+
+impl std::hash::Hash for ResourceId {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.value.hash(state);
     }
 }
 

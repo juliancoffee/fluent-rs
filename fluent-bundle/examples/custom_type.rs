@@ -21,19 +21,14 @@ use fluent_bundle::{FluentArgs, FluentBundle, FluentResource, FluentValue};
 //  - timeStyle
 //
 // with an enum of allowed values.
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+#[derive(Debug, Default, PartialEq, Eq, Clone, Hash)]
 enum DateTimeStyleValue {
     Full,
     Long,
     Medium,
     Short,
+    #[default]
     None,
-}
-
-impl std::default::Default for DateTimeStyleValue {
-    fn default() -> Self {
-        Self::None
-    }
 }
 
 // This is just a helper to make it easier to convert
@@ -165,7 +160,7 @@ key-date = Today is { DATETIME($epoch, dateStyle: "long", timeStyle: "short") }
         .expect("Failed to add FTL resources to the bundle.");
 
     bundle
-        .add_function("DATETIME", |positional, named| match positional.get(0) {
+        .add_function("DATETIME", |positional, named| match positional.first() {
             Some(FluentValue::Number(n)) => {
                 let epoch = n.value as usize;
                 let options = named.into();

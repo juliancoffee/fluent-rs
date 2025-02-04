@@ -11,6 +11,7 @@ use fluent_fallback::{
     types::{L10nKey, ResourceId},
     Localization, LocalizationError,
 };
+use rustc_hash::FxHashSet;
 use std::cell::RefCell;
 use std::rc::Rc;
 use unic_langid::{langid, LanguageIdentifier};
@@ -55,7 +56,7 @@ impl LocalesProvider for Locales {
 // lack of GATs, these have to own members instead of taking slices.
 struct BundleIter {
     locales: <Vec<LanguageIdentifier> as IntoIterator>::IntoIter,
-    res_ids: Vec<ResourceId>,
+    res_ids: FxHashSet<ResourceId>,
 }
 
 impl Iterator for BundleIter {
@@ -132,11 +133,19 @@ impl BundleGenerator for ResourceManager {
     type Iter = BundleIter;
     type Stream = BundleIter;
 
-    fn bundles_iter(&self, locales: Self::LocalesIter, res_ids: Vec<ResourceId>) -> Self::Iter {
+    fn bundles_iter(
+        &self,
+        locales: Self::LocalesIter,
+        res_ids: FxHashSet<ResourceId>,
+    ) -> Self::Iter {
         BundleIter { locales, res_ids }
     }
 
-    fn bundles_stream(&self, locales: Self::LocalesIter, res_ids: Vec<ResourceId>) -> Self::Stream {
+    fn bundles_stream(
+        &self,
+        locales: Self::LocalesIter,
+        res_ids: FxHashSet<ResourceId>,
+    ) -> Self::Stream {
         BundleIter { locales, res_ids }
     }
 }
@@ -203,7 +212,7 @@ fn localization_format_value_missing_errors() {
     let res_mgr = ResourceManager;
     let mut errors = vec![];
 
-    let loc = Localization::with_env(resource_ids, true, locales.clone(), res_mgr);
+    let loc = Localization::with_env(resource_ids, true, locales, res_mgr);
     let bundles = loc.bundles();
 
     let _ = bundles
@@ -259,7 +268,7 @@ fn localization_format_value_sync_missing_errors() {
     let res_mgr = ResourceManager;
     let mut errors = vec![];
 
-    let loc = Localization::with_env(resource_ids, true, locales.clone(), res_mgr);
+    let loc = Localization::with_env(resource_ids, true, locales, res_mgr);
     let bundles = loc.bundles();
 
     let _ = bundles
@@ -315,7 +324,7 @@ fn localization_format_values_sync_missing_errors() {
     let res_mgr = ResourceManager;
     let mut errors = vec![];
 
-    let loc = Localization::with_env(resource_ids, true, locales.clone(), res_mgr);
+    let loc = Localization::with_env(resource_ids, true, locales, res_mgr);
     let bundles = loc.bundles();
 
     let _ = bundles
@@ -386,7 +395,7 @@ fn localization_format_messages_sync_missing_errors() {
     let res_mgr = ResourceManager;
     let mut errors = vec![];
 
-    let loc = Localization::with_env(resource_ids, true, locales.clone(), res_mgr);
+    let loc = Localization::with_env(resource_ids, true, locales, res_mgr);
     let bundles = loc.bundles();
 
     let _ = bundles
@@ -445,7 +454,7 @@ fn localization_format_missing_argument_error() {
 
     let msgs = bundles.format_messages_sync(&keys, &mut errors).unwrap();
     assert_eq!(
-        msgs.get(0).unwrap().as_ref().unwrap().value,
+        msgs.first().unwrap().as_ref().unwrap().value,
         Some(Cow::Borrowed("Hello, John. [en]"))
     );
     assert_eq!(errors.len(), 0);
@@ -456,7 +465,7 @@ fn localization_format_missing_argument_error() {
     }];
     let msgs = bundles.format_messages_sync(&keys, &mut errors).unwrap();
     assert_eq!(
-        msgs.get(0).unwrap().as_ref().unwrap().value,
+        msgs.first().unwrap().as_ref().unwrap().value,
         Some(Cow::Borrowed("Hello, {$userName}. [en]"))
     );
     assert_eq!(
@@ -487,4 +496,23 @@ async fn localization_handle_state_changes_mid_async() {
     loc.add_resource_id("test2.ftl".to_string());
 
     bundles.format_value("key", None, &mut errors).await;
+}
+
+#[test]
+fn localization_duplicate_resources() {
+    let resource_ids: Vec<ResourceId> =
+        vec!["test.ftl".into(), "test2.ftl".into(), "test2.ftl".into()];
+    let locales = Locales::new(vec![langid!("pl"), langid!("en-US")]);
+    let res_mgr = ResourceManager;
+    let mut errors = vec![];
+
+    let loc = Localization::with_env(resource_ids, true, locales, res_mgr);
+    let bundles = loc.bundles();
+
+    let value = bundles
+        .format_value_sync("hello-world", None, &mut errors)
+        .unwrap();
+    assert_eq!(value, Some(Cow::Borrowed("Hello World [pl]")));
+
+    assert_eq!(errors.len(), 0, "There were no errors");
 }

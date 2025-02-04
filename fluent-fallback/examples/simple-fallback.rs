@@ -28,6 +28,7 @@ use fluent_fallback::{
 };
 use fluent_langneg::{negotiate_languages, NegotiationStrategy};
 
+use rustc_hash::FxHashSet;
 use unic_langid::{langid, LanguageIdentifier};
 
 /// This helper struct holds the scheme for converting
@@ -65,12 +66,12 @@ fn get_available_locales() -> io::Result<Vec<LanguageIdentifier>> {
     Ok(locales)
 }
 
-fn resolve_app_locales<'l>(args: &[String]) -> Vec<LanguageIdentifier> {
+fn resolve_app_locales(args: &[String]) -> Vec<LanguageIdentifier> {
     let default_locale = langid!("en-US");
     let available = get_available_locales().expect("Retrieving available locales failed.");
 
     let requested: Vec<LanguageIdentifier> = args.get(2).map_or(vec![], |arg| {
-        arg.split(",")
+        arg.split(',')
             .map(|s| s.parse().expect("Parsing locale failed."))
             .collect()
     });
@@ -111,7 +112,7 @@ fn main() {
     let bundles = get_resource_manager();
 
     let loc = Localization::with_env(
-        L10N_RESOURCES.iter().map(|&res| res.into()).collect(),
+        L10N_RESOURCES.iter().map(|&res| res.into()),
         true,
         app_locales,
         bundles,
@@ -121,7 +122,7 @@ fn main() {
     let mut errors = vec![];
 
     match args.get(1) {
-        Some(input) => match isize::from_str(&input) {
+        Some(input) => match isize::from_str(input) {
             Ok(i) => {
                 let mut args = FluentArgs::new();
                 args.set("input", i);
@@ -164,11 +165,11 @@ fn collatz(n: isize) -> isize {
     }
 }
 
-/// Bundle iterator used by BundleGeneratorSync implementation for Locales.
+/// Bundle iterator used by `BundleGeneratorSync` implementation for `Locales`.
 struct BundleIter {
     res_path_scheme: String,
     locales: <Vec<LanguageIdentifier> as IntoIterator>::IntoIter,
-    res_ids: Vec<ResourceId>,
+    res_ids: FxHashSet<ResourceId>,
 }
 
 impl Iterator for BundleIter {
@@ -225,7 +226,7 @@ impl BundleGenerator for Bundles {
     fn bundles_iter(
         &self,
         locales: std::vec::IntoIter<LanguageIdentifier>,
-        res_ids: Vec<ResourceId>,
+        res_ids: FxHashSet<ResourceId>,
     ) -> Self::Iter {
         BundleIter {
             res_path_scheme: self.res_path_scheme.to_string_lossy().to_string(),

@@ -28,9 +28,19 @@ use crate::memoizer::MemoizerKind;
 use crate::resolver::Scope;
 use crate::resource::FluentResource;
 
+/// Custom types can implement the [`FluentType`] trait in order to generate a string
+/// value for use in the message generation process.
 pub trait FluentType: fmt::Debug + AnyEq + 'static {
+    /// Create a clone of the underlying type.
     fn duplicate(&self) -> Box<dyn FluentType + Send>;
+
+    /// Convert the custom type into a string value, for instance a custom `DateTime`
+    /// type could return "Oct. 27, 2022".
     fn as_string(&self, intls: &intl_memoizer::IntlLangMemoizer) -> Cow<'static, str>;
+
+    /// Convert the custom type into a string value, for instance a custom `DateTime`
+    /// type could return "Oct. 27, 2022". This operation is provided the threadsafe
+    /// [`IntlLangMemoizer`](intl_memoizer::concurrent::IntlLangMemoizer).
     fn as_string_threadsafe(
         &self,
         intls: &intl_memoizer::concurrent::IntlLangMemoizer,
@@ -101,15 +111,71 @@ impl<'s> Clone for FluentValue<'s> {
 }
 
 impl<'source> FluentValue<'source> {
-    pub fn try_number<S: ToString>(v: S) -> Self {
-        let s = v.to_string();
-        if let Ok(num) = FluentNumber::from_str(&s) {
-            num.into()
+    /// Attempts to parse the string representation of a `value` that supports
+    /// [`ToString`] into a [`FluentValue::Number`]. If it fails, it will instead
+    /// convert it to a [`FluentValue::String`].
+    ///
+    /// ```
+    /// use fluent_bundle::types::{FluentNumber, FluentNumberOptions, FluentValue};
+    ///
+    /// // "2" parses into a `FluentNumber`
+    /// assert_eq!(
+    ///     FluentValue::try_number("2"),
+    ///     FluentValue::Number(FluentNumber::new(2.0, FluentNumberOptions::default()))
+    /// );
+    ///
+    /// // Floats can be parsed as well.
+    /// assert_eq!(
+    ///     FluentValue::try_number("3.141569"),
+    ///     FluentValue::Number(FluentNumber::new(
+    ///         3.141569,
+    ///         FluentNumberOptions {
+    ///             minimum_fraction_digits: Some(6),
+    ///             ..Default::default()
+    ///         }
+    ///     ))
+    /// );
+    ///
+    /// // When a value is not a valid number, it falls back to a `FluentValue::String`
+    /// assert_eq!(
+    ///     FluentValue::try_number("A string"),
+    ///     FluentValue::String("A string".into())
+    /// );
+    /// ```
+    pub fn try_number(value: &'source str) -> Self {
+        if let Ok(number) = FluentNumber::from_str(value) {
+            number.into()
         } else {
-            s.into()
+            value.into()
         }
     }
 
+    /// Checks to see if two [`FluentValues`](FluentValue) match each other by having the
+    /// same type and contents. The special exception is in the case of a string being
+    /// compared to a number. Here attempt to check that the plural rule category matches.
+    ///
+    /// ```
+    /// use fluent_bundle::resolver::Scope;
+    /// use fluent_bundle::{types::FluentValue, FluentBundle, FluentResource};
+    /// use unic_langid::langid;
+    ///
+    /// let langid_ars = langid!("en");
+    /// let bundle: FluentBundle<FluentResource> = FluentBundle::new(vec![langid_ars]);
+    /// let scope = Scope::new(&bundle, None, None);
+    ///
+    /// // Matching examples:
+    /// assert!(FluentValue::try_number("2").matches(&FluentValue::try_number("2"), &scope));
+    /// assert!(FluentValue::from("fluent").matches(&FluentValue::from("fluent"), &scope));
+    /// assert!(
+    ///     FluentValue::from("one").matches(&FluentValue::try_number("1"), &scope),
+    ///     "Plural rules are matched."
+    /// );
+    ///
+    /// // Non-matching examples:
+    /// assert!(!FluentValue::try_number("2").matches(&FluentValue::try_number("3"), &scope));
+    /// assert!(!FluentValue::from("fluent").matches(&FluentValue::from("not fluent"), &scope));
+    /// assert!(!FluentValue::from("two").matches(&FluentValue::try_number("100"), &scope),);
+    /// ```
     pub fn matches<R: Borrow<FluentResource>, M>(
         &self,
         other: &FluentValue,
@@ -119,9 +185,9 @@ impl<'source> FluentValue<'source> {
         M: MemoizerKind,
     {
         match (self, other) {
-            (&FluentValue::String(ref a), &FluentValue::String(ref b)) => a == b,
-            (&FluentValue::Number(ref a), &FluentValue::Number(ref b)) => a == b,
-            (&FluentValue::String(ref a), &FluentValue::Number(ref b)) => {
+            (FluentValue::String(a), FluentValue::String(b)) => a == b,
+            (FluentValue::Number(a), FluentValue::Number(b)) => a == b,
+            (FluentValue::String(a), FluentValue::Number(b)) => {
                 let cat = match a.as_ref() {
                     "zero" => PluralCategory::ZERO,
                     "one" => PluralCategory::ONE,
@@ -131,19 +197,25 @@ impl<'source> FluentValue<'source> {
                     "other" => PluralCategory::OTHER,
                     _ => return false,
                 };
+                // This string matches a plural rule keyword. Check if the number
+                // matches the plural rule category.
+                let r#type = match b.options.r#type {
+                    FluentNumberType::Cardinal => PluralRuleType::CARDINAL,
+                    FluentNumberType::Ordinal => PluralRuleType::ORDINAL,
+                };
                 scope
                     .bundle
                     .intls
-                    .with_try_get_threadsafe::<PluralRules, _, _>(
-                        (PluralRuleType::CARDINAL,),
-                        |pr| pr.0.select(b) == Ok(cat),
-                    )
+                    .with_try_get_threadsafe::<PluralRules, _, _>((r#type,), |pr| {
+                        pr.0.select(b) == Ok(cat)
+                    })
                     .unwrap()
             }
             _ => false,
         }
     }
 
+    /// Write out a string version of the [`FluentValue`] to `W`.
     pub fn write<W, R, M>(&self, w: &mut W, scope: &Scope<R, M>) -> fmt::Result
     where
         W: fmt::Write,
@@ -164,6 +236,10 @@ impl<'source> FluentValue<'source> {
         }
     }
 
+    /// Converts the [`FluentValue`] to a string.
+    ///
+    /// Clones inner values when owned, borrowed data is not cloned.
+    /// Prefer using [`FluentValue::into_string()`] when possible.
     pub fn as_string<R: Borrow<FluentResource>, M>(&self, scope: &Scope<R, M>) -> Cow<'source, str>
     where
         M: MemoizerKind,
@@ -179,6 +255,38 @@ impl<'source> FluentValue<'source> {
             FluentValue::Custom(s) => scope.bundle.intls.stringify_value(&**s),
             FluentValue::Error => "".into(),
             FluentValue::None => "".into(),
+        }
+    }
+
+    /// Converts the [`FluentValue`] to a string.
+    ///
+    /// Takes self by-value to be able to skip expensive clones.
+    /// Prefer this method over [`FluentValue::as_string()`] when possible.
+    pub fn into_string<R: Borrow<FluentResource>, M>(self, scope: &Scope<R, M>) -> Cow<'source, str>
+    where
+        M: MemoizerKind,
+    {
+        if let Some(formatter) = &scope.bundle.formatter {
+            if let Some(val) = formatter(&self, &scope.bundle.intls) {
+                return val.into();
+            }
+        }
+        match self {
+            FluentValue::String(s) => s,
+            FluentValue::Number(n) => n.as_string(),
+            FluentValue::Custom(s) => scope.bundle.intls.stringify_value(s.as_ref()),
+            FluentValue::Error => "".into(),
+            FluentValue::None => "".into(),
+        }
+    }
+
+    pub fn into_owned<'a>(&self) -> FluentValue<'a> {
+        match self {
+            FluentValue::String(str) => FluentValue::String(Cow::from(str.to_string())),
+            FluentValue::Number(s) => FluentValue::Number(s.clone()),
+            FluentValue::Custom(s) => FluentValue::Custom(s.duplicate()),
+            FluentValue::Error => FluentValue::Error,
+            FluentValue::None => FluentValue::None,
         }
     }
 }
@@ -204,5 +312,17 @@ impl<'source> From<&'source str> for FluentValue<'source> {
 impl<'source> From<Cow<'source, str>> for FluentValue<'source> {
     fn from(s: Cow<'source, str>) -> Self {
         FluentValue::String(s)
+    }
+}
+
+impl<'source, T> From<Option<T>> for FluentValue<'source>
+where
+    T: Into<FluentValue<'source>>,
+{
+    fn from(v: Option<T>) -> Self {
+        match v {
+            Some(v) => v.into(),
+            None => FluentValue::None,
+        }
     }
 }

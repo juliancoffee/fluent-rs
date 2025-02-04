@@ -1,31 +1,29 @@
 [package]
 name = "fluent"
 description = """
-A localization system designed to unleash the entire expressive power of
-natural language translations.
+An umbrella crate exposing the combined features of fluent-rs crates with additional convenience macros for Project Fluent,
+a localization system designed to unleash the entire expressive power of natural language translations.
 """
-version = "0.16.0"
-edition = "2021"
-authors = [
-    "Zibi Braniecki <gandalf@mozilla.com>",
-    "Staś Małolepszy <stas@mozilla.com>"
-]
-homepage = "http://www.projectfluent.org"
-license = "Apache-2.0/MIT"
-repository = "https://github.com/projectfluent/fluent-rs"
+version = "0.16.1"
+edition.workspace = true
+rust-version.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+authors.workspace = true
+categories.workspace = true
+keywords.workspace = true
 readme = "README.md"
-keywords = ["localization", "l10n", "i18n", "intl", "internationalization"]
-categories = ["localization", "internationalization"]
 include = [
-	"src/**/*",
-	"benches/*.rs",
-	"Cargo.toml",
-	"README.md",
-	"LICENSE-APACHE",
-	"LICENSE-MIT"
+  "src/**/*",
+  "benches/*.rs",
+  "Cargo.toml",
+  "README.md",
+  "LICENSE-APACHE",
+  "LICENSE-MIT"
 ]
 
 [dependencies]
-fluent-bundle = { version = "0.15", path = "../fluent-bundle" }
-unic-langid = "0.9"
-fluent-pseudo = { version = "0.3", optional = true }
+fluent-bundle.workspace = true
+fluent-pseudo = { workspace = true, optional = true }
+unic-langid.workspace = true

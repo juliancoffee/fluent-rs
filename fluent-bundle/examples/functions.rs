@@ -16,15 +16,13 @@ fn main() {
 
     // Test for a simple function that returns a string
     bundle
-        .add_function("HELLO", |_args, _named_args| {
-            return "I'm a function!".into();
-        })
+        .add_function("HELLO", |_args, _named_args| "I'm a function!".into())
         .expect("Failed to add a function to the bundle.");
 
     // Test for a function that accepts unnamed positional arguments
     bundle
         .add_function("MEANING_OF_LIFE", |args, _named_args| {
-            if let Some(arg0) = args.get(0) {
+            if let Some(arg0) = args.first() {
                 if *arg0 == 42.into() {
                     return "The answer to life, the universe, and everything".into();
                 }
@@ -61,7 +59,7 @@ fn main() {
         .expect("Message doesn't exist.");
     let mut errors = vec![];
     let pattern = msg.value().expect("Message has no value.");
-    let value = bundle.format_pattern(&pattern, None, &mut errors);
+    let value = bundle.format_pattern(pattern, None, &mut errors);
     assert_eq!(&value, "Hey there! \u{2068}I'm a function!\u{2069}");
 
     let msg = bundle
@@ -69,7 +67,7 @@ fn main() {
         .expect("Message doesn't exist.");
     let mut errors = vec![];
     let pattern = msg.value().expect("Message has no value.");
-    let value = bundle.format_pattern(&pattern, None, &mut errors);
+    let value = bundle.format_pattern(pattern, None, &mut errors);
     assert_eq!(&value, "The answer to life, the universe, and everything");
 
     let msg = bundle
@@ -77,6 +75,6 @@ fn main() {
         .expect("Message doesn't exist.");
     let mut errors = vec![];
     let pattern = msg.value().expect("Message has no value.");
-    let value = bundle.format_pattern(&pattern, None, &mut errors);
+    let value = bundle.format_pattern(pattern, None, &mut errors);
     assert_eq!(&value, "All your base belong to us");
 }

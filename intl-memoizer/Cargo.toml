@@ -1,34 +1,32 @@
 [package]
 name = "intl-memoizer"
 description = """
-A memoizer specifically tailored for storing lazy-initialized
-intl formatters.
+A memoizer specifically tailored for storing lazy-initialized intl formatters for Project Fluent,
+a localization system designed to unleash the entire expressive power of natural language translations.
 """
-version = "0.5.1"
-edition = "2021"
-authors = [
-    "Zibi Braniecki <gandalf@mozilla.com>",
-    "Manish Goregaokar <manishsmail@gmail.com>"
-]
-homepage = "http://www.projectfluent.org"
-license = "Apache-2.0/MIT"
-repository = "https://github.com/projectfluent/fluent-rs"
+version = "0.5.2"
+edition.workspace = true
+rust-version.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+authors.workspace = true
+categories.workspace = true
+keywords.workspace = true
 readme = "README.md"
-keywords = ["localization", "l10n", "i18n", "intl", "internationalization"]
-categories = ["localization", "internationalization"]
 include = [
-	"src/**/*",
-	"benches/*.rs",
-	"Cargo.toml",
-	"README.md",
-	"LICENSE-APACHE",
-	"LICENSE-MIT"
+  "src/**/*",
+  "benches/*.rs",
+  "Cargo.toml",
+  "README.md",
+  "LICENSE-APACHE",
+  "LICENSE-MIT"
 ]
 
 [dependencies]
+unic-langid.workspace = true
 type-map = "0.5"
-unic-langid = "0.9"
 
 [dev-dependencies]
-intl_pluralrules = "7.0.1"
-fluent-langneg = "0.13"
+intl_pluralrules.workspace = true
+fluent-langneg.workspace = true
